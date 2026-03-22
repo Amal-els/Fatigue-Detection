@@ -146,6 +146,10 @@ def render_safety_card(snapshot: dict):
         <div class="status-value">{snapshot['detector_mode']}</div>
     </div>
     <div class="status-card">
+        <div class="status-label">Detector Detail</div>
+        <div class="muted-copy">{snapshot.get('detector_detail', 'No detail available')}</div>
+    </div>
+    <div class="status-card">
         <div class="status-label">Guidance</div>
         <div class="muted-copy">
             Keep your face centered, add front lighting if needed, and use the live chart to tune the threshold.

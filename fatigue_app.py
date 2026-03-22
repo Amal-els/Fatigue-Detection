@@ -5,12 +5,10 @@ import av
 import streamlit as st
 from config import VideoHTMLAttributes
 
-try:
-    from streamlit_webrtc import webrtc_streamer
-    WEBRTC_IMPORT_ERROR = None
-except ModuleNotFoundError as exc:
-    webrtc_streamer = None
-    WEBRTC_IMPORT_ERROR = exc
+
+from streamlit_webrtc import webrtc_streamer
+WEBRTC_IMPORT_ERROR = None
+
 
 from alarm import AlarmPlayer
 from app_state import RuntimeState
@@ -64,7 +62,9 @@ def render_sidebar():
     )
 
     st.sidebar.markdown("## Runtime Notes")
-    st.sidebar.caption("MediaPipe gives better landmarks when installed. The OpenCV fallback keeps the demo usable.")
+    st.sidebar.caption(
+        "MediaPipe Tasks needs a local `face_landmarker_v2.task` model file. Without it, the app falls back to OpenCV."
+    )
 
     return {
         "EAR_THRESH": ear_thresh,
@@ -90,27 +90,29 @@ def render_system_status(runtime_state: RuntimeState, metrics_placeholder, statu
         with metric_col4:
             st.metric("Lighting", "Low" if snapshot["low_light"] else "Good")
 
+        st.caption("Live diagnostics")
+        history = snapshot["history"]
+        if history:
+            chart_data = {
+                "EAR": [item["EAR"] for item in history],
+                "Threshold": [item["Threshold"] for item in history],
+                "Fatigue Score": [item["Fatigue Score"] for item in history],
+            }
+            st.line_chart(chart_data, height=260)
+        else:
+            st.info("Start the stream to populate the EAR and fatigue trend.")
+
+        detail_col1, detail_col2, detail_col3, detail_col4, detail_col5 = st.columns(5)
+        detail_col1.metric("Raw EAR", f"{snapshot['eye_ratio']:.2f}")
+        detail_col2.metric("Smoothed EAR", f"{snapshot['smoothed_eye_ratio']:.2f}")
+        detail_col3.metric("Fatigue Score", f"{snapshot['fatigue_score']:.2f}")
+        detail_col4.metric("Yawn Ratio", f"{snapshot['mouth_ratio']:.2f}")
+        detail_col5.metric("Head Pose", f"{snapshot['head_pitch']:.1f}/{snapshot['head_yaw']:.1f}")
+
     with status_placeholder.container():
         left_col, right_col = st.columns([0.95, 1.45], gap="large")
         with left_col:
             st.markdown(render_safety_card(snapshot), unsafe_allow_html=True)
-        with right_col:
-            st.caption("Live diagnostics")
-            history = snapshot["history"]
-            if history:
-                chart_data = {
-                    "EAR": [item["EAR"] for item in history],
-                    "Threshold": [item["Threshold"] for item in history],
-                    "Fatigue Score": [item["Fatigue Score"] for item in history],
-                }
-                st.line_chart(chart_data, height=260)
-            else:
-                st.info("Start the stream to populate the EAR and fatigue trend.")
-
-            detail_col1, detail_col2, detail_col3 = st.columns(3)
-            detail_col1.metric("Raw EAR", f"{snapshot['eye_ratio']:.2f}")
-            detail_col2.metric("Smoothed EAR", f"{snapshot['smoothed_eye_ratio']:.2f}")
-            detail_col3.metric("Fatigue Score", f"{snapshot['fatigue_score']:.2f}")
 
     with events_placeholder.container():
         st.caption("Recent events")
@@ -174,25 +176,28 @@ def main():
     )
     st.markdown("</div>", unsafe_allow_html=True)
 
-    is_streaming = bool(ctx and ctx.state.playing)
-    if not is_streaming:
-        alarm_player.stop()
-
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.subheader("Dashboard and Diagnostics")
     st.caption("Expanded runtime status appears below the stream for easier monitoring.")
     metrics_placeholder = st.empty()
     status_placeholder = st.empty()
     events_placeholder = st.empty()
+    
+    # Initial render
     render_system_status(
         runtime_state,
         metrics_placeholder,
         status_placeholder,
         events_placeholder,
-        is_streaming,
+        False,
     )
     st.markdown("</div>", unsafe_allow_html=True)
 
+    is_streaming = bool(ctx and ctx.state.playing)
+    if not is_streaming:
+        alarm_player.stop()
+
+    # Update loop for streaming
     if is_streaming:
         while ctx.state.playing:
             render_system_status(

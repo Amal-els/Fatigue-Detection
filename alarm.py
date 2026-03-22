@@ -1,9 +1,6 @@
 import threading
 
-try:
-    import winsound
-except ModuleNotFoundError:
-    winsound = None
+import winsound
 
 
 class AlarmPlayer:

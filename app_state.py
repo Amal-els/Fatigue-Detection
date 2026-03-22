@@ -10,8 +10,12 @@ class RuntimeState:
     lock: Lock = field(default_factory=Lock)
     play_alarm: bool = False
     detector_mode: str = "Unavailable"
+    detector_detail: str = ""
     eye_ratio: float = 0.0
     smoothed_eye_ratio: float = 0.0
+    mouth_ratio: float = 0.0
+    head_pitch: float = 0.0
+    head_yaw: float = 0.0
     drowsy_time: float = 0.0
     fatigue_score: float = 0.0
     face_detected: bool = False
@@ -26,8 +30,12 @@ class RuntimeState:
             previous_alarm = self.play_alarm
             self.play_alarm = bool(result["play_alarm"])
             self.detector_mode = result["detector_mode"]
+            self.detector_detail = result.get("detector_detail", "")
             self.eye_ratio = float(result["eye_ratio"])
             self.smoothed_eye_ratio = float(result["smoothed_eye_ratio"])
+            self.mouth_ratio = float(result.get("mouth_ratio", 0.0))
+            self.head_pitch = float(result.get("head_pitch", 0.0))
+            self.head_yaw = float(result.get("head_yaw", 0.0))
             self.drowsy_time = float(result["drowsy_time"])
             self.fatigue_score = float(result["fatigue_score"])
             self.face_detected = bool(result["face_detected"])
@@ -57,8 +65,12 @@ class RuntimeState:
             return {
                 "play_alarm": self.play_alarm,
                 "detector_mode": self.detector_mode,
+                "detector_detail": self.detector_detail,
                 "eye_ratio": self.eye_ratio,
                 "smoothed_eye_ratio": self.smoothed_eye_ratio,
+                "mouth_ratio": self.mouth_ratio,
+                "head_pitch": self.head_pitch,
+                "head_yaw": self.head_yaw,
                 "drowsy_time": self.drowsy_time,
                 "fatigue_score": self.fatigue_score,
                 "face_detected": self.face_detected,
