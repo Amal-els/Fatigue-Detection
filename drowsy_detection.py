@@ -7,10 +7,9 @@ from typing import Deque, Optional
 import cv2
 import numpy as np
 
-try:
-    import mediapipe as mp
-except ModuleNotFoundError:
-    mp = None
+
+import mediapipe as mp
+
 
 
 @dataclass
